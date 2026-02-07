@@ -29,8 +29,10 @@ export const getAIMoveFromOpenRouter = async (board) => {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer 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`,
+        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:5173", // Optional, for OpenRouter rankings
+        "X-Title": "Tic Tac Tai", // Optional, for OpenRouter rankings
       },
       body: JSON.stringify({
         model: "deepseek/deepseek-r1",
