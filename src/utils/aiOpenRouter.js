@@ -58,6 +58,9 @@ export const getAIMoveFromOpenRouter = async (board) => {
       // Log key info for debugging (non-sensitive check)
       console.log("API Key present:", !!apiKey);
       console.log("API Key length:", apiKey?.length);
+      if (apiKey) {
+        console.log("API Key check (first/last 5):", `${apiKey.substring(0, 5)}...${apiKey.slice(-5)}`);
+      }
       console.log("API Key prefix check:", apiKey?.startsWith("sk-or-v1-"));
       return null;
     }
