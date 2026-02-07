@@ -53,7 +53,12 @@ export const getAIMoveFromOpenRouter = async (board) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("OpenRouter API Error:", response.status, data);
+      console.error("OpenRouter API Error:", response.status);
+      console.error("Error Details:", JSON.stringify(data, null, 2));
+      // Log key info for debugging (non-sensitive check)
+      console.log("API Key present:", !!apiKey);
+      console.log("API Key length:", apiKey?.length);
+      console.log("API Key prefix check:", apiKey?.startsWith("sk-or-v1-"));
       return null;
     }
     
