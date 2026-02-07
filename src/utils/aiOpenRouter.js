@@ -26,13 +26,19 @@ export const getAIMoveFromOpenRouter = async (board) => {
   `;
 
   const getMoveFromClaude = async () => {
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!apiKey) {
+      console.error("OpenRouter API Key is missing! Check your .env file.");
+      return null;
+    }
+
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:5173", // Optional, for OpenRouter rankings
-        "X-Title": "Tic Tac Tai", // Optional, for OpenRouter rankings
+        "HTTP-Referer": "http://localhost:5173", 
+        "X-Title": "Tic Tac Tai",
       },
       body: JSON.stringify({
         model: "deepseek/deepseek-r1",
@@ -45,9 +51,20 @@ export const getAIMoveFromOpenRouter = async (board) => {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenRouter API Error:", response.status, data);
+      return null;
+    }
     
-    const text = data?.choices?.[0]?.message?.content?.trim();
-    console.log(text);
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) {
+      console.error("OpenRouter returned no content:", data);
+      return null;
+    }
+
+    const text = content.trim();
+    console.log("AI Response:", text);
     const match = text.match(/\d+/);
     return match ? parseInt(match[0], 10) : null;
   };
