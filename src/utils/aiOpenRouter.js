@@ -26,7 +26,7 @@ export const getAIMoveFromOpenRouter = async (board) => {
   `;
 
   const getMoveFromClaude = async () => {
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY?.trim();
     if (!apiKey) {
       console.error("OpenRouter API Key is missing! Check your .env file.");
       return null;
@@ -55,13 +55,15 @@ export const getAIMoveFromOpenRouter = async (board) => {
     if (!response.ok) {
       console.error("OpenRouter API Error:", response.status);
       console.error("Error Details:", JSON.stringify(data, null, 2));
-      // Log key info for debugging (non-sensitive check)
-      console.log("API Key present:", !!apiKey);
-      console.log("API Key length:", apiKey?.length);
+      console.log("--- API Key Debug ---");
+      console.log("Key present:", !!apiKey);
+      console.log("Key length:", apiKey?.length);
+      console.log("Key starts with 'sk-or-v1-':", apiKey?.startsWith("sk-or-v1-"));
       if (apiKey) {
-        console.log("API Key check (first/last 5):", `${apiKey.substring(0, 5)}...${apiKey.slice(-5)}`);
+        console.log("Key first 10 characters:", apiKey.substring(0, 10));
+        console.log("Key last 5 characters:", apiKey.slice(-5));
       }
-      console.log("API Key prefix check:", apiKey?.startsWith("sk-or-v1-"));
+      console.log("----------------------");
       return null;
     }
     
