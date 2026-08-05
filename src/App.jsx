@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import ScoreBoard from "./components/ScoreBoard";
 import GameBoard from "./components/GameBoard";
 import { checkWinner } from "./utils/Winner";
-import { getAIMoveFromOpenRouter } from "./utils/aiOpenRouter";
+import { getAIMoveFromOpenRouter, getRuleBasedMove } from "./utils/aiOpenRouter";
 
 const App = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
@@ -40,9 +40,13 @@ const App = () => {
     // AI TURN
     if (!isPlayerTurn && !winner) {
       const aiTurn = async () => {
-        const move = await getAIMoveFromOpenRouter(board);
+        let move = await getAIMoveFromOpenRouter(board);
 
-        if (move !== null && board[move] === null) {
+        if (move === null || board[move] !== null) {
+          move = getRuleBasedMove(board);
+        }
+
+        if (move !== null) {
           const newBoard = [...board];
           newBoard[move] = "O";
           setBoard(newBoard);

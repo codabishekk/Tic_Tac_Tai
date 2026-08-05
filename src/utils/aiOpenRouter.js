@@ -1,31 +1,64 @@
+const WIN_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
+];
+
+export const getRuleBasedMove = (b) => {
+  const empty = b
+    .map((cell, i) => (cell === null ? i : -1))
+    .filter((i) => i !== -1);
+  if (!empty.length) return null;
+
+  const findWinning = (mark) => {
+    for (const line of WIN_LINES) {
+      const cells = line.map((i) => b[i]);
+      if (cells.filter((c) => c === mark).length === 2 && cells.includes(null)) {
+        return line.find((i) => b[i] === null);
+      }
+    }
+    return null;
+  };
+
+  const win = findWinning("0");
+  if (win !== null) return win;
+  const block = findWinning("X");
+  if (block !== null) return block;
+  if (b[4] === null) return 4;
+  return [0, 2, 6, 8].find((i) => b[i] === null)
+    ?? [1, 3, 5, 7].find((i) => b[i] === null);
+};
+
 export const getAIMoveFromOpenRouter = async (board) => {
   const SystemPrompt = `
-    You are a smart Tic Tac Toe AI playing as "0".
+You are a Tic Tac Toe engine playing as "0". You are PERFECT at this game.
+Follow this exact decision procedure, in order:
+1. WIN: If any empty cell completes a row of three for you ("0"), pick it.
+2. BLOCK: Else if any empty cell completes a row of three for the opponent ("X"), pick it.
+3. FORK: Else pick a cell that creates two winning lines at once.
+4. BLOCK FORK: Else if the opponent can fork next turn, block it.
+5. CENTER: Else pick 4 if it is empty.
+6. CORNER: Else pick an empty corner (0, 2, 6, 8).
+7. SIDE: Else pick an empty side (1, 3, 5, 7).
 
-    Your goal:
-    1. Win if possible
-    2. Block the opponent if they are about to win
-    3. Otherwise: choose center > corner > side
-
-    Only return ONE number (0–8). Do NOT explain.
+Reply with EXACTLY ONE INTEGER from 0 to 8 and NOTHING ELSE.
+No punctuation. No spaces. No explanation. No reasoning.
+Your entire response must be a single digit.
   `;
 
   const userPrompt = `
-    Current board: ${JSON.stringify(board)}
+Current board (indexes):
+[0] [1] [2]
+[3] [4] [5]
+[6] [7] [8]
 
-    Each cell is indexed:
-    [0] [1] [2]
-    [3] [4] [5]
-    [6] [7] [8]
+Board state: ${JSON.stringify(board)}
+("0" = you, "X" = opponent, null = empty)
 
-    "0" = you (AI)
-    "X" = human
-    null = empty
-
-    What is your move?
+Your move (single digit 0-8):
   `;
 
-  const getMoveFromClaude = async () => {
+  const getMoveFromLLM = async () => {
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY?.trim();
     if (!apiKey) {
       console.error("OpenRouter API Key is missing! Check your .env file.");
@@ -41,8 +74,9 @@ export const getAIMoveFromOpenRouter = async (board) => {
         "X-Title": "Tic Tac Tai",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-r1",
+        model: "openai/gpt-oss-20b:free",
         temperature: 0.2,
+        max_tokens: 100,
         messages: [
           { role: "system", content: SystemPrompt },
           { role: "user", content: userPrompt },
@@ -67,22 +101,32 @@ export const getAIMoveFromOpenRouter = async (board) => {
       return null;
     }
     
-    const content = data?.choices?.[0]?.message?.content;
-    if (!content) {
+    const message = data?.choices?.[0]?.message;
+    const rawContent = message?.content;
+    const content = Array.isArray(rawContent)
+      ? rawContent.map((part) => part?.text ?? "").join("")
+      : rawContent;
+    const text = (content || message?.reasoning || "").trim();
+    if (!text) {
       console.error("OpenRouter returned no content:", data);
       return null;
     }
 
-    const text = content.trim();
     console.log("AI Response:", text);
-    const match = text.match(/\d+/);
-    return match ? parseInt(match[0], 10) : null;
+    const candidates = text.match(/[0-8]/g) || [];
+    const emptyCells = board
+      .map((cell, i) => (cell === null ? i : -1))
+      .filter((i) => i !== -1);
+    const valid = candidates
+      .map(Number)
+      .filter((cell) => emptyCells.includes(cell));
+    return valid.length ? valid[valid.length - 1] : null;
   };
 
   try {
-    let move = await getMoveFromClaude();
-    return move;
+    return await getMoveFromLLM();
   } catch (err) {
     console.log("AI error:", err);
+    return getRuleBasedMove(board);
   }
 };
